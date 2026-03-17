@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seedance 2.0 - Video AI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span>Seedance 2.0</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon" id="historyBtn" title="Generation History">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Preview Area -->
+      <div class="preview-area" id="previewArea">
+        <div class="preview-placeholder" id="previewPlaceholder">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <p>Your generated video will appear here</p>
+        </div>
+        <video id="videoPlayer" controls style="display:none; max-width:100%; max-height:100%; border-radius:12px;"></video>
+        <!-- Progress overlay -->
+        <div class="progress-overlay" id="progressOverlay" style="display:none;">
+          <div class="progress-spinner"></div>
+          <p class="progress-text" id="progressText">Generating video...</p>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+          <p class="progress-sub" id="progressSub">This may take a few minutes</p>
+        </div>
+      </div>
+
+      <!-- Input Panel -->
+      <div class="input-panel">
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active" data-tab="t2v">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Text to Video
+          </button>
+          <button class="tab" data-tab="i2v">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Image to Video
+          </button>
+          <button class="tab" data-tab="extend">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
+            Extend Video
+          </button>
+        </div>
+
+        <!-- Reference Images (I2V mode) -->
+        <div class="ref-section" id="refSection" style="display:none;">
+          <label class="ref-label">Reference Images</label>
+          <div class="ref-images" id="refImages">
+            <div class="ref-add" id="refAddBtn">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Add Image</span>
+            </div>
+          </div>
+          <input type="file" id="imageInput" accept="image/*" style="display:none;" />
+          <div class="ref-url-row">
+            <input type="text" id="imageUrlInput" class="input-url" placeholder="Or paste image URL..." />
+            <button class="btn-small" id="addUrlBtn">Add</button>
+          </div>
+        </div>
+
+        <!-- Extend Section -->
+        <div class="extend-section" id="extendSection" style="display:none;">
+          <label class="ref-label">Request ID to Extend</label>
+          <input type="text" id="extendId" class="input-field" placeholder="Paste the request_id of a previous generation..." />
+        </div>
+
+        <!-- Prompt -->
+        <div class="prompt-section">
+          <textarea id="promptInput" class="prompt-input" placeholder="Describe the video or add references..." rows="3"></textarea>
+        </div>
+
+        <!-- Settings Bar -->
+        <div class="settings-bar">
+          <div class="setting">
+            <label>Model</label>
+            <div class="setting-value">Seedance 2.0</div>
+          </div>
+          <div class="setting">
+            <label>Aspect Ratio</label>
+            <select id="aspectRatio" class="setting-select">
+              <option value="16:9" selected>16:9</option>
+              <option value="9:16">9:16</option>
+              <option value="4:3">4:3</option>
+              <option value="3:4">3:4</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label>Duration</label>
+            <select id="duration" class="setting-select">
+              <option value="5" selected>5s</option>
+              <option value="10">10s</option>
+              <option value="15">15s</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label>Quality</label>
+            <select id="quality" class="setting-select">
+              <option value="basic" selected>Basic</option>
+              <option value="high">High (2K)</option>
+            </select>
+          </div>
+          <div class="spacer"></div>
+          <button class="generate-btn" id="generateBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Generate
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- History Sidebar -->
+    <div class="sidebar" id="historySidebar">
+      <div class="sidebar-header">
+        <h3>History</h3>
+        <button class="btn-icon" id="closeHistory">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="sidebar-content" id="historyList">
+        <p class="empty-state">No generations yet</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
