@@ -108,9 +108,17 @@ app.post("/api/generate", async (req, res) => {
       };
     }
 
+    console.log(`[GENERATE] Mode: ${mode}, Endpoint: ${endpoint}`);
+    console.log(`[GENERATE] Payload:`, JSON.stringify(payload, null, 2));
+
     const result = await apiRequest("POST", endpoint, payload);
+
+    console.log(`[GENERATE] Response status: ${result.status}`);
+    console.log(`[GENERATE] Response:`, JSON.stringify(result.data, null, 2));
+
     res.json(result.data);
   } catch (err) {
+    console.error(`[GENERATE] ERROR:`, err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -119,14 +127,18 @@ app.post("/api/generate", async (req, res) => {
 app.post("/api/extend", async (req, res) => {
   try {
     const { request_id, prompt, duration, quality } = req.body;
+    console.log(`[EXTEND] Request ID: ${request_id}`);
     const result = await apiRequest("POST", "/seedance-v2.0-extend", {
       request_id,
       prompt: prompt || "",
       duration: duration || 5,
       quality: quality || "basic",
     });
+    console.log(`[EXTEND] Response status: ${result.status}`);
+    console.log(`[EXTEND] Response:`, JSON.stringify(result.data, null, 2));
     res.json(result.data);
   } catch (err) {
+    console.error(`[EXTEND] ERROR:`, err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -138,16 +150,22 @@ app.get("/api/result/:id", async (req, res) => {
       "GET",
       `/predictions/${req.params.id}/result`
     );
+    console.log(`[POLL] ID: ${req.params.id} — Status: ${result.status} — Result:`, JSON.stringify(result.data).slice(0, 200));
     res.json(result.data);
   } catch (err) {
+    console.error(`[POLL] ERROR:`, err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
 // POST /api/upload - Upload a reference image (returns a served URL)
 app.post("/api/upload", upload.single("image"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  if (!req.file) {
+    console.log(`[UPLOAD] No file received`);
+    return res.status(400).json({ error: "No file uploaded" });
+  }
   const fileUrl = `/uploads/${req.file.filename}`;
+  console.log(`[UPLOAD] File saved: ${req.file.filename} (${(req.file.size / 1024).toFixed(1)} KB)`);
   res.json({ url: fileUrl });
 });
 
