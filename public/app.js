@@ -78,22 +78,14 @@
     const file = e.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.url) {
-        // Convert relative path to absolute URL for API
-        referenceImages.push(window.location.origin + data.url);
-        renderRefImages();
-      } else {
-        showToast("Upload failed: " + (data.error || "Unknown error"), true);
-      }
-    } catch (err) {
-      showToast("Upload failed: " + err.message, true);
-    }
+    // Read file as base64 data URI directly in the browser
+    const reader = new FileReader();
+    reader.onload = () => {
+      referenceImages.push(reader.result); // data:image/...;base64,...
+      renderRefImages();
+    };
+    reader.onerror = () => showToast("Failed to read image file", true);
+    reader.readAsDataURL(file);
     imageInput.value = "";
   });
 
@@ -237,14 +229,17 @@
         const res = await fetch(`/api/result/${requestId}`);
         const data = await res.json();
 
-        if (data.status === "completed" && data.url) {
+        // Extract video URL from various response formats
+        const videoUrl = data.url || (data.outputs && data.outputs.length > 0 && data.outputs[0]) || (data.output && data.output.video_url) || null;
+
+        if ((data.status === "completed" || data.status === "succeeded") && videoUrl) {
           clearInterval(polling);
           hideProgress();
-          showVideo(data.url);
-          updateHistoryEntry(requestId, "completed", data.url);
+          showVideo(videoUrl);
+          updateHistoryEntry(requestId, "completed", videoUrl);
           generateBtn.disabled = false;
           showToast("Video generated successfully!");
-        } else if (data.status === "failed") {
+        } else if (data.status === "failed" || data.status === "error") {
           clearInterval(polling);
           hideProgress();
           showToast(
