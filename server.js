@@ -145,13 +145,30 @@ app.post("/api/extend", async (req, res) => {
 });
 
 // GET /api/result/:id - Poll for result
+const lastPollStatus = {};
 app.get("/api/result/:id", async (req, res) => {
   try {
     const result = await apiRequest(
       "GET",
       `/predictions/${req.params.id}/result`
     );
-    console.log(`[POLL] ID: ${req.params.id} — Status: ${result.status} — Result:`, JSON.stringify(result.data).slice(0, 200));
+    const data = result.data.detail || result.data;
+    const status = data.status || "unknown";
+    const prevStatus = lastPollStatus[req.params.id];
+
+    // Only log on status change or first poll
+    if (status !== prevStatus) {
+      lastPollStatus[req.params.id] = status;
+      if (status === "completed" || status === "succeeded") {
+        const url = data.outputs?.[0] || data.url || "(no url)";
+        console.log(`[POLL] ID: ${req.params.id} — COMPLETED — Video: ${url}`);
+      } else if (status === "failed" || data.error) {
+        console.log(`[POLL] ID: ${req.params.id} — FAILED — Error: ${data.error || "unknown"}`);
+      } else {
+        console.log(`[POLL] ID: ${req.params.id} — Status: ${status}`);
+      }
+    }
+
     res.json(result.data);
   } catch (err) {
     console.error(`[POLL] ERROR:`, err.message);

@@ -234,7 +234,10 @@
 
       try {
         const res = await fetch(`/api/result/${requestId}`);
-        const data = await res.json();
+        const raw = await res.json();
+
+        // Handle responses wrapped in "detail" (error responses from API)
+        const data = raw.detail || raw;
 
         // Extract video URL from various response formats
         const videoUrl = data.url || (data.outputs && data.outputs.length > 0 && data.outputs[0]) || (data.output && data.output.video_url) || null;
@@ -246,7 +249,7 @@
           updateHistoryEntry(requestId, "completed", videoUrl);
           generateBtn.disabled = false;
           showToast("Video generated successfully!");
-        } else if (data.status === "failed" || data.status === "error") {
+        } else if (data.status === "failed" || data.status === "error" || data.error) {
           clearInterval(polling);
           hideProgress();
           showToast(
