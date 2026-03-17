@@ -78,14 +78,21 @@
     const file = e.target.files[0];
     if (!file) return;
 
-    // Read file as base64 data URI directly in the browser
-    const reader = new FileReader();
-    reader.onload = () => {
-      referenceImages.push(reader.result); // data:image/...;base64,...
-      renderRefImages();
-    };
-    reader.onerror = () => showToast("Failed to read image file", true);
-    reader.readAsDataURL(file);
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.publicUrl) {
+        referenceImages.push(data.publicUrl);
+        renderRefImages();
+      } else {
+        showToast("Upload failed: " + (data.error || "Unknown error"), true);
+      }
+    } catch (err) {
+      showToast("Upload failed: " + err.message, true);
+    }
     imageInput.value = "";
   });
 

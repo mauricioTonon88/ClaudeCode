@@ -3,6 +3,7 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
+const http = require("http");
 
 // Load .env manually (no dotenv dependency)
 try {
@@ -158,15 +159,67 @@ app.get("/api/result/:id", async (req, res) => {
   }
 });
 
-// POST /api/upload - Upload a reference image (returns a served URL)
-app.post("/api/upload", upload.single("image"), (req, res) => {
+// Helper: upload a file to litterbox.catbox.moe (temporary public hosting, 1h)
+function uploadToCatbox(filePath) {
+  return new Promise((resolve, reject) => {
+    const boundary = "----CatboxBoundary" + Date.now();
+    const fileName = path.basename(filePath);
+    const fileData = fs.readFileSync(filePath);
+
+    const prefix = Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n` +
+      `--${boundary}\r\nContent-Disposition: form-data; name="time"\r\n\r\n1h\r\n` +
+      `--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="${fileName}"\r\n` +
+      `Content-Type: application/octet-stream\r\n\r\n`
+    );
+    const suffix = Buffer.from(`\r\n--${boundary}--\r\n`);
+    const body = Buffer.concat([prefix, fileData, suffix]);
+
+    const options = {
+      hostname: "litterbox.catbox.moe",
+      path: "/resources/internals/api.php",
+      method: "POST",
+      headers: {
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+        "Content-Length": body.length,
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        const url = data.trim();
+        if (url.startsWith("http")) {
+          resolve(url);
+        } else {
+          reject(new Error("Catbox upload failed: " + data));
+        }
+      });
+    });
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+// POST /api/upload - Upload a reference image, then host it publicly
+app.post("/api/upload", upload.single("image"), async (req, res) => {
   if (!req.file) {
     console.log(`[UPLOAD] No file received`);
     return res.status(400).json({ error: "No file uploaded" });
   }
-  const fileUrl = `/uploads/${req.file.filename}`;
   console.log(`[UPLOAD] File saved: ${req.file.filename} (${(req.file.size / 1024).toFixed(1)} KB)`);
-  res.json({ url: fileUrl });
+
+  try {
+    console.log(`[UPLOAD] Uploading to catbox.moe for public URL...`);
+    const publicUrl = await uploadToCatbox(req.file.path);
+    console.log(`[UPLOAD] Public URL: ${publicUrl}`);
+    res.json({ url: `/uploads/${req.file.filename}`, publicUrl });
+  } catch (err) {
+    console.error(`[UPLOAD] Catbox upload failed:`, err.message);
+    res.status(500).json({ error: "Failed to create public URL: " + err.message });
+  }
 });
 
 app.listen(PORT, () => {
