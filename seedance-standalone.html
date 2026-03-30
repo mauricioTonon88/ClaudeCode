@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seedance 2.0 - Video AI (Standalone)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #0a0a0a; --bg-secondary: #141414; --bg-tertiary: #1e1e1e;
+      --bg-hover: #2a2a2a; --border: #2a2a2a; --border-light: #333;
+      --text-primary: #e5e5e5; --text-secondary: #888; --text-muted: #555;
+      --accent: #7c5cfc; --accent-hover: #6a4ae8; --accent-glow: rgba(124,92,252,0.15);
+      --danger: #e54545; --success: #22c55e; --radius: 12px; --radius-sm: 8px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary); height: 100vh; overflow: hidden;
+    }
+    .app { display: flex; flex-direction: column; height: 100vh; }
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 24px; border-bottom: 1px solid var(--border); background: var(--bg-secondary);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; }
+    .logo svg { color: var(--accent); }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-icon {
+      background: none; border: 1px solid var(--border); color: var(--text-secondary);
+      width: 36px; height: 36px; border-radius: var(--radius-sm); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    }
+    .btn-icon:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-light); }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .preview-area {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      background: var(--bg-primary); position: relative; overflow: hidden;
+    }
+    .preview-placeholder {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      color: var(--text-muted); font-size: 14px;
+    }
+    .progress-overlay {
+      position: absolute; inset: 0; background: rgba(10,10,10,0.85);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; z-index: 10; backdrop-filter: blur(8px);
+    }
+    .progress-spinner {
+      width: 48px; height: 48px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-text { font-size: 16px; font-weight: 500; }
+    .progress-bar-container { width: 240px; height: 4px; background: var(--bg-tertiary); border-radius: 2px; overflow: hidden; }
+    .progress-bar {
+      height: 100%; background: var(--accent); border-radius: 2px; width: 0%;
+      animation: indeterminate 2s ease-in-out infinite;
+    }
+    @keyframes indeterminate {
+      0% { width: 0%; margin-left: 0; }
+      50% { width: 60%; margin-left: 20%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+    .progress-sub { font-size: 13px; color: var(--text-secondary); }
+    .input-panel { background: var(--bg-secondary); border-top: 1px solid var(--border); padding: 16px 24px; }
+
+    /* API Key bar */
+    .api-key-bar {
+      display: flex; gap: 8px; margin-bottom: 12px; align-items: center;
+    }
+    .api-key-bar label { font-size: 12px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; }
+    .api-key-bar input {
+      flex: 1; padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none;
+      font-family: monospace;
+    }
+    .api-key-bar input:focus { border-color: var(--accent); }
+    .api-key-bar .key-status { font-size: 11px; padding: 4px 8px; border-radius: 4px; white-space: nowrap; }
+    .key-saved { background: rgba(34,197,94,0.15); color: var(--success); }
+    .key-unsaved { background: rgba(234,179,8,0.15); color: #eab308; }
+
+    .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+    .tab {
+      display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      color: var(--text-secondary); font-size: 13px; font-weight: 500;
+      border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s;
+    }
+    .tab:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .tab.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+    .ref-section { margin-bottom: 12px; }
+    .ref-label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .ref-images { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .ref-add {
+      width: 80px; height: 80px; border: 2px dashed var(--border-light);
+      border-radius: var(--radius-sm); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px; cursor: pointer;
+      color: var(--text-muted); font-size: 11px; transition: all 0.15s;
+    }
+    .ref-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+    .ref-thumb {
+      width: 80px; height: 80px; border-radius: var(--radius-sm); overflow: hidden;
+      position: relative; border: 1px solid var(--border);
+    }
+    .ref-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .ref-thumb .ref-remove {
+      position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+      background: rgba(0,0,0,0.7); border: none; border-radius: 50%;
+      color: var(--text-primary); font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s;
+    }
+    .ref-thumb:hover .ref-remove { opacity: 1; }
+    .ref-url-row { display: flex; gap: 8px; }
+    .input-url {
+      flex: 1; padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none;
+    }
+    .input-url:focus { border-color: var(--accent); }
+    .btn-small {
+      padding: 8px 16px; background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-small:hover { background: var(--bg-hover); border-color: var(--border-light); }
+    .extend-section { margin-bottom: 12px; }
+    .input-field {
+      width: 100%; padding: 10px 14px; background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none;
+    }
+    .input-field:focus { border-color: var(--accent); }
+    .prompt-section { margin-bottom: 12px; }
+    .prompt-input {
+      width: 100%; padding: 12px 16px; background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text-primary); font-size: 14px;
+      font-family: inherit; resize: none; outline: none; transition: border-color 0.15s;
+    }
+    .prompt-input:focus { border-color: var(--accent); }
+    .prompt-input::placeholder { color: var(--text-muted); }
+    .settings-bar { display: flex; align-items: center; gap: 20px; padding: 8px 0 0; }
+    .setting { display: flex; align-items: center; gap: 8px; }
+    .setting label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .setting-value {
+      font-size: 13px; color: var(--text-primary); font-weight: 500;
+      padding: 4px 10px; background: var(--bg-tertiary); border-radius: 6px; border: 1px solid var(--border);
+    }
+    .setting-select {
+      padding: 5px 10px; background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text-primary); font-size: 13px; cursor: pointer; outline: none;
+    }
+    .setting-select:focus { border-color: var(--accent); }
+    .spacer { flex: 1; }
+    .generate-btn {
+      display: flex; align-items: center; gap: 8px; padding: 10px 24px;
+      background: var(--accent); border: none; border-radius: var(--radius-sm);
+      color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .generate-btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+    .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .sidebar {
+      position: fixed; right: -360px; top: 0; width: 360px; height: 100vh;
+      background: var(--bg-secondary); border-left: 1px solid var(--border);
+      z-index: 100; transition: right 0.25s ease; display: flex; flex-direction: column;
+    }
+    .sidebar.open { right: 0; }
+    .sidebar-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-header h3 { font-size: 15px; font-weight: 600; }
+    .sidebar-content { flex: 1; overflow-y: auto; padding: 12px; }
+    .empty-state { text-align: center; color: var(--text-muted); font-size: 13px; padding: 40px 20px; }
+    .history-item {
+      padding: 12px; background: var(--bg-tertiary); border-radius: var(--radius-sm);
+      border: 1px solid var(--border); margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+    }
+    .history-item:hover { border-color: var(--border-light); background: var(--bg-hover); }
+    .history-item .hi-prompt { font-size: 13px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-item .hi-meta { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--text-secondary); }
+    .hi-status { padding: 2px 8px; border-radius: 4px; font-weight: 500; font-size: 11px; }
+    .hi-status.pending { background: rgba(234,179,8,0.15); color: #eab308; }
+    .hi-status.completed { background: rgba(34,197,94,0.15); color: var(--success); }
+    .hi-status.failed { background: rgba(229,69,69,0.15); color: var(--danger); }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      padding: 10px 20px; background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;
+      z-index: 200; transition: transform 0.3s ease; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { border-color: var(--danger); color: var(--danger); }
+
+    /* Log console */
+    .log-toggle {
+      font-size: 11px; color: var(--text-muted); cursor: pointer; padding: 4px 8px;
+      background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px;
+    }
+    .log-toggle:hover { color: var(--text-secondary); border-color: var(--border-light); }
+    .log-panel {
+      display: none; max-height: 150px; overflow-y: auto; background: #000; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-family: monospace; font-size: 11px;
+      color: #0f0;
+    }
+    .log-panel.open { display: block; }
+    .log-line { margin: 2px 0; white-space: pre-wrap; word-break: break-all; }
+    .log-line.error { color: var(--danger); }
+    .log-line.info { color: #0af; }
+
+    @media (max-width: 768px) {
+      .settings-bar { flex-wrap: wrap; gap: 10px; }
+      .header { padding: 12px 16px; }
+      .input-panel { padding: 12px 16px; }
+      .tabs { overflow-x: auto; }
+      .api-key-bar { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span>Seedance 2.0</span>
+        <span style="font-size:11px; color:var(--text-muted); font-weight:400;">(Standalone)</span>
+      </div>
+      <div class="header-actions">
+        <button class="log-toggle" id="logToggle">Console</button>
+        <button class="btn-icon" id="historyBtn" title="Generation History">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="preview-area" id="previewArea">
+        <div class="preview-placeholder" id="previewPlaceholder">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <p>Your generated video will appear here</p>
+          <p style="font-size:12px; color:var(--text-muted);">Just double-click this file to open it — no server needed</p>
+        </div>
+        <video id="videoPlayer" controls style="display:none; max-width:100%; max-height:100%; border-radius:12px;"></video>
+        <div class="progress-overlay" id="progressOverlay" style="display:none;">
+          <div class="progress-spinner"></div>
+          <p class="progress-text" id="progressText">Generating video...</p>
+          <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+          <p class="progress-sub" id="progressSub">This may take a few minutes</p>
+        </div>
+      </div>
+
+      <div class="input-panel">
+        <!-- API Key -->
+        <div class="api-key-bar">
+          <label>API Key:</label>
+          <input type="password" id="apiKeyInput" placeholder="Enter your muapi.ai API key..." />
+          <button class="btn-small" id="saveKeyBtn">Save</button>
+          <span class="key-status" id="keyStatus"></span>
+        </div>
+
+        <!-- Log Panel -->
+        <div class="log-panel" id="logPanel"></div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active" data-tab="t2v">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Text to Video
+          </button>
+          <button class="tab" data-tab="i2v">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Image to Video
+          </button>
+          <button class="tab" data-tab="extend">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
+            Extend Video
+          </button>
+        </div>
+
+        <!-- Reference Images (I2V mode) -->
+        <div class="ref-section" id="refSection" style="display:none;">
+          <label class="ref-label">Reference Images</label>
+          <div class="ref-images" id="refImages">
+            <div class="ref-add" id="refAddBtn">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Add Image</span>
+            </div>
+          </div>
+          <input type="file" id="imageInput" accept="image/*" style="display:none;" />
+          <div class="ref-url-row">
+            <input type="text" id="imageUrlInput" class="input-url" placeholder="Paste a public image URL..." />
+            <button class="btn-small" id="addUrlBtn">Add</button>
+          </div>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">
+            For file uploads: images are uploaded to litterbox.catbox.moe (1h temporary hosting).
+            Or paste a direct public URL.
+          </p>
+        </div>
+
+        <!-- Extend Section -->
+        <div class="extend-section" id="extendSection" style="display:none;">
+          <label class="ref-label">Request ID to Extend</label>
+          <input type="text" id="extendId" class="input-field" placeholder="Paste the request_id of a previous generation..." />
+        </div>
+
+        <!-- Prompt -->
+        <div class="prompt-section">
+          <textarea id="promptInput" class="prompt-input" placeholder="Describe the video you want to generate..." rows="3"></textarea>
+        </div>
+
+        <!-- Settings -->
+        <div class="settings-bar">
+          <div class="setting">
+            <label>Model</label>
+            <div class="setting-value">Seedance 2.0</div>
+          </div>
+          <div class="setting">
+            <label>Aspect Ratio</label>
+            <select id="aspectRatio" class="setting-select">
+              <option value="16:9" selected>16:9</option>
+              <option value="9:16">9:16</option>
+              <option value="4:3">4:3</option>
+              <option value="3:4">3:4</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label>Duration</label>
+            <select id="duration" class="setting-select">
+              <option value="5" selected>5s</option>
+              <option value="10">10s</option>
+              <option value="15">15s</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label>Quality</label>
+            <select id="quality" class="setting-select">
+              <option value="basic" selected>Basic</option>
+              <option value="high">High (2K)</option>
+            </select>
+          </div>
+          <div class="spacer"></div>
+          <button class="generate-btn" id="generateBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Generate
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- History Sidebar -->
+    <div class="sidebar" id="historySidebar">
+      <div class="sidebar-header">
+        <h3>History</h3>
+        <button class="btn-icon" id="closeHistory">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="sidebar-content" id="historyList">
+        <p class="empty-state">No generations yet</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    const API_BASE = "https://api.muapi.ai/api/v1";
+
+    // State
+    let currentMode = "t2v";
+    let referenceImages = [];
+    let history = JSON.parse(localStorage.getItem("seedance_history_standalone") || "[]");
+    let polling = null;
+
+    // API Key management
+    const apiKeyInput = document.getElementById("apiKeyInput");
+    const saveKeyBtn = document.getElementById("saveKeyBtn");
+    const keyStatus = document.getElementById("keyStatus");
+
+    function getApiKey() {
+      return localStorage.getItem("muapi_api_key") || "";
+    }
+
+    function loadApiKey() {
+      const key = getApiKey();
+      if (key) {
+        apiKeyInput.value = key;
+        keyStatus.textContent = "Saved";
+        keyStatus.className = "key-status key-saved";
+      } else {
+        keyStatus.textContent = "Not set";
+        keyStatus.className = "key-status key-unsaved";
+      }
+    }
+
+    saveKeyBtn.addEventListener("click", () => {
+      const key = apiKeyInput.value.trim();
+      if (!key) { showToast("Please enter an API key", true); return; }
+      localStorage.setItem("muapi_api_key", key);
+      keyStatus.textContent = "Saved";
+      keyStatus.className = "key-status key-saved";
+      showToast("API key saved to browser storage");
+    });
+
+    loadApiKey();
+
+    // Logging
+    const logPanel = document.getElementById("logPanel");
+    const logToggle = document.getElementById("logToggle");
+
+    logToggle.addEventListener("click", () => logPanel.classList.toggle("open"));
+
+    function log(msg, type) {
+      const line = document.createElement("div");
+      line.className = "log-line" + (type ? " " + type : "");
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logPanel.appendChild(line);
+      logPanel.scrollTop = logPanel.scrollHeight;
+      console.log(msg);
+    }
+
+    // API helper
+    async function apiRequest(method, urlPath, body) {
+      const key = getApiKey();
+      if (!key) throw new Error("API key not set. Enter your muapi.ai API key above.");
+
+      const url = API_BASE + urlPath;
+      const options = {
+        method,
+        headers: { "x-api-key": key, "Content-Type": "application/json" },
+      };
+      if (body) options.body = JSON.stringify(body);
+
+      log(`${method} ${urlPath}`, "info");
+      if (body) log(`Payload: ${JSON.stringify(body)}`, "info");
+
+      const res = await fetch(url, options);
+      const data = await res.json();
+
+      log(`Response ${res.status}: ${JSON.stringify(data)}`);
+      return { status: res.status, data };
+    }
+
+    // Upload image to litterbox.catbox.moe for public URL
+    async function uploadToCatbox(file) {
+      log("Uploading image to litterbox.catbox.moe...", "info");
+      const formData = new FormData();
+      formData.append("reqtype", "fileupload");
+      formData.append("time", "1h");
+      formData.append("fileToUpload", file);
+
+      const res = await fetch("https://litterbox.catbox.moe/resources/internals/api.php", {
+        method: "POST",
+        body: formData,
+      });
+      const text = await res.text();
+      const url = text.trim();
+      if (url.startsWith("http")) {
+        log(`Catbox upload OK: ${url}`, "info");
+        return url;
+      }
+      throw new Error("Catbox upload failed: " + text);
+    }
+
+    // DOM elements
+    const tabs = document.querySelectorAll(".tab");
+    const refSection = document.getElementById("refSection");
+    const extendSection = document.getElementById("extendSection");
+    const refImagesContainer = document.getElementById("refImages");
+    const refAddBtn = document.getElementById("refAddBtn");
+    const imageInput = document.getElementById("imageInput");
+    const imageUrlInput = document.getElementById("imageUrlInput");
+    const addUrlBtn = document.getElementById("addUrlBtn");
+    const extendId = document.getElementById("extendId");
+    const promptInput = document.getElementById("promptInput");
+    const aspectRatio = document.getElementById("aspectRatio");
+    const duration = document.getElementById("duration");
+    const quality = document.getElementById("quality");
+    const generateBtn = document.getElementById("generateBtn");
+    const previewPlaceholder = document.getElementById("previewPlaceholder");
+    const videoPlayer = document.getElementById("videoPlayer");
+    const progressOverlay = document.getElementById("progressOverlay");
+    const progressText = document.getElementById("progressText");
+    const progressSub = document.getElementById("progressSub");
+    const historyBtn = document.getElementById("historyBtn");
+    const closeHistory = document.getElementById("closeHistory");
+    const historySidebar = document.getElementById("historySidebar");
+    const historyList = document.getElementById("historyList");
+
+    // Tab switching
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        tabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        currentMode = tab.dataset.tab;
+        refSection.style.display = currentMode === "i2v" ? "block" : "none";
+        extendSection.style.display = currentMode === "extend" ? "block" : "none";
+        if (currentMode === "t2v") promptInput.placeholder = "Describe the video you want to generate...";
+        else if (currentMode === "i2v") promptInput.placeholder = "Describe how the image should be animated...";
+        else promptInput.placeholder = "Optional: describe how to continue the video...";
+      });
+    });
+
+    // Reference images
+    function renderRefImages() {
+      refImagesContainer.querySelectorAll(".ref-thumb").forEach(el => el.remove());
+      referenceImages.forEach((url, idx) => {
+        const thumb = document.createElement("div");
+        thumb.className = "ref-thumb";
+        thumb.innerHTML = `<img src="${escapeHtml(url)}" alt="Ref ${idx+1}" /><button class="ref-remove" data-idx="${idx}">&times;</button>`;
+        refImagesContainer.insertBefore(thumb, refAddBtn);
+      });
+    }
+
+    refAddBtn.addEventListener("click", () => imageInput.click());
+
+    imageInput.addEventListener("change", async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const publicUrl = await uploadToCatbox(file);
+        referenceImages.push(publicUrl);
+        renderRefImages();
+      } catch (err) {
+        showToast("Upload failed: " + err.message, true);
+        log("Upload failed: " + err.message, "error");
+      }
+      imageInput.value = "";
+    });
+
+    addUrlBtn.addEventListener("click", () => {
+      const url = imageUrlInput.value.trim();
+      if (!url) return;
+      if (!url.startsWith("http")) { showToast("Please enter a valid URL", true); return; }
+      referenceImages.push(url);
+      renderRefImages();
+      imageUrlInput.value = "";
+    });
+
+    refImagesContainer.addEventListener("click", e => {
+      const btn = e.target.closest(".ref-remove");
+      if (btn) { referenceImages.splice(parseInt(btn.dataset.idx), 1); renderRefImages(); }
+    });
+
+    // Generate
+    generateBtn.addEventListener("click", async () => {
+      if (!getApiKey()) { showToast("Please enter and save your API key first", true); return; }
+      if (currentMode === "t2v" && !promptInput.value.trim()) { showToast("Please enter a prompt", true); return; }
+      if (currentMode === "i2v" && referenceImages.length === 0) { showToast("Please add at least one reference image", true); return; }
+      if (currentMode === "extend" && !extendId.value.trim()) { showToast("Please enter a request ID", true); return; }
+
+      generateBtn.disabled = true;
+      showProgress("Submitting request...", "Connecting to Seedance API");
+
+      try {
+        let result;
+        if (currentMode === "extend") {
+          result = await apiRequest("POST", "/seedance-v2.0-extend", {
+            request_id: extendId.value.trim(),
+            prompt: promptInput.value.trim(),
+            duration: parseInt(duration.value),
+            quality: quality.value,
+          });
+        } else {
+          const endpoint = currentMode === "i2v" ? "/seedance-v2.0-i2v" : "/seedance-v2.0-t2v";
+          const payload = {
+            prompt: promptInput.value.trim(),
+            aspect_ratio: aspectRatio.value,
+            duration: parseInt(duration.value),
+            quality: quality.value,
+          };
+          if (currentMode === "i2v") payload.images_list = referenceImages;
+          result = await apiRequest("POST", endpoint, payload);
+        }
+
+        const data = result.data;
+        if (data.error) {
+          hideProgress();
+          showToast("Error: " + (data.error || JSON.stringify(data)), true);
+          log("Generate error: " + JSON.stringify(data), "error");
+          generateBtn.disabled = false;
+          return;
+        }
+
+        const requestId = data.request_id;
+        if (!requestId) {
+          hideProgress();
+          showToast("No request_id returned: " + JSON.stringify(data), true);
+          generateBtn.disabled = false;
+          return;
+        }
+
+        log(`Got request_id: ${requestId}`, "info");
+
+        const entry = {
+          id: requestId,
+          prompt: promptInput.value.trim() || "(no prompt)",
+          mode: currentMode,
+          settings: { aspect_ratio: aspectRatio.value, duration: duration.value, quality: quality.value },
+          status: "pending",
+          timestamp: Date.now(),
+          url: null,
+        };
+        history.unshift(entry);
+        saveHistory();
+        renderHistory();
+
+        showProgress("Generating video...", `Request ID: ${requestId} — This may take a few minutes`);
+        startPolling(requestId);
+      } catch (err) {
+        hideProgress();
+        showToast("Request failed: " + err.message, true);
+        log("Request failed: " + err.message, "error");
+        generateBtn.disabled = false;
+      }
+    });
+
+    // Polling
+    function startPolling(requestId) {
+      let elapsed = 0;
+      const interval = 5000;
+      const maxTime = 600000;
+
+      polling = setInterval(async () => {
+        elapsed += interval;
+        if (elapsed > maxTime) {
+          clearInterval(polling);
+          hideProgress();
+          showToast("Generation timed out after 10 minutes", true);
+          updateHistoryEntry(requestId, "failed");
+          generateBtn.disabled = false;
+          return;
+        }
+
+        try {
+          const result = await apiRequest("GET", `/predictions/${requestId}/result`);
+          const raw = result.data;
+          const data = raw.detail || raw;
+          const videoUrl = data.url || (data.outputs && data.outputs[0]) || (data.output && data.output.video_url) || null;
+
+          if ((data.status === "completed" || data.status === "succeeded") && videoUrl) {
+            clearInterval(polling);
+            hideProgress();
+            showVideo(videoUrl);
+            updateHistoryEntry(requestId, "completed", videoUrl);
+            generateBtn.disabled = false;
+            showToast("Video generated successfully!");
+            log(`Video ready: ${videoUrl}`, "info");
+          } else if (data.status === "failed" || data.status === "error" || data.error) {
+            clearInterval(polling);
+            hideProgress();
+            const errMsg = data.error || "Unknown error";
+            showToast("Generation failed: " + errMsg, true);
+            log(`Generation failed: ${errMsg}`, "error");
+            updateHistoryEntry(requestId, "failed");
+            generateBtn.disabled = false;
+          } else {
+            const mins = Math.floor(elapsed / 60000);
+            const secs = Math.floor((elapsed % 60000) / 1000);
+            progressSub.textContent = `Elapsed: ${mins}m ${secs}s — Status: ${data.status || "processing"}`;
+          }
+        } catch (err) {
+          progressSub.textContent = "Connection issue, retrying...";
+          log("Poll error: " + err.message, "error");
+        }
+      }, interval);
+    }
+
+    function showVideo(url) {
+      previewPlaceholder.style.display = "none";
+      videoPlayer.style.display = "block";
+      videoPlayer.src = url;
+      videoPlayer.load();
+    }
+
+    function showProgress(text, sub) {
+      progressOverlay.style.display = "flex";
+      progressText.textContent = text;
+      progressSub.textContent = sub;
+    }
+
+    function hideProgress() { progressOverlay.style.display = "none"; }
+
+    // History
+    function saveHistory() { localStorage.setItem("seedance_history_standalone", JSON.stringify(history)); }
+
+    function updateHistoryEntry(requestId, status, url) {
+      const entry = history.find(h => h.id === requestId);
+      if (entry) { entry.status = status; if (url) entry.url = url; saveHistory(); renderHistory(); }
+    }
+
+    function renderHistory() {
+      if (history.length === 0) { historyList.innerHTML = '<p class="empty-state">No generations yet</p>'; return; }
+      historyList.innerHTML = history.map(h => `
+        <div class="history-item" data-url="${escapeHtml(h.url || "")}" data-id="${escapeHtml(h.id)}">
+          <div class="hi-prompt">${escapeHtml(h.prompt)}</div>
+          <div class="hi-meta">
+            <span class="hi-status ${h.status}">${h.status}</span>
+            <span>${h.mode.toUpperCase()}</span>
+            <span>${h.settings.aspect_ratio}</span>
+            <span>${h.settings.duration}s</span>
+            <span>${new Date(h.timestamp).toLocaleTimeString()}</span>
+          </div>
+        </div>
+      `).join("");
+
+      historyList.querySelectorAll(".history-item").forEach(item => {
+        item.addEventListener("click", () => {
+          const url = item.dataset.url;
+          if (url && url !== "null") {
+            showVideo(url);
+            historySidebar.classList.remove("open");
+          } else {
+            const id = item.dataset.id;
+            const entry = history.find(h => h.id === id);
+            if (entry && entry.status === "pending") {
+              showProgress("Checking status...", `Request ID: ${id}`);
+              startPolling(id);
+              generateBtn.disabled = true;
+              historySidebar.classList.remove("open");
+            }
+          }
+        });
+      });
+    }
+
+    historyBtn.addEventListener("click", () => { renderHistory(); historySidebar.classList.toggle("open"); });
+    closeHistory.addEventListener("click", () => historySidebar.classList.remove("open"));
+
+    function showToast(message, isError) {
+      let toast = document.querySelector(".toast");
+      if (!toast) { toast = document.createElement("div"); toast.className = "toast"; document.body.appendChild(toast); }
+      toast.textContent = message;
+      toast.classList.toggle("error", !!isError);
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    renderHistory();
+  })();
+  </script>
+</body>
+</html>
