@@ -205,6 +205,54 @@
     .log-line.error { color: var(--danger); }
     .log-line.info { color: #0af; }
 
+    /* Omni Reference Section */
+    .omni-section { margin-bottom: 12px; }
+    .omni-group { margin-bottom: 10px; }
+    .omni-group-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    }
+    .omni-group-header .ref-label { margin-bottom: 0; }
+    .omni-group-header .omni-count {
+      font-size: 11px; color: var(--text-muted); font-weight: 400;
+    }
+    .omni-items { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .omni-item {
+      position: relative; border-radius: var(--radius-sm); overflow: hidden;
+      border: 1px solid var(--border); background: var(--bg-tertiary);
+    }
+    .omni-item-img { width: 70px; height: 70px; }
+    .omni-item-img img { width: 100%; height: 100%; object-fit: cover; }
+    .omni-item-file {
+      width: 70px; height: 70px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 2px; padding: 4px;
+    }
+    .omni-item-file .file-icon { font-size: 18px; }
+    .omni-item-file .file-name {
+      font-size: 9px; color: var(--text-secondary); text-align: center;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
+    }
+    .omni-item .omni-remove {
+      position: absolute; top: 2px; right: 2px; width: 18px; height: 18px;
+      background: rgba(0,0,0,0.7); border: none; border-radius: 50%;
+      color: var(--text-primary); font-size: 11px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .omni-item:hover .omni-remove { opacity: 1; }
+    .omni-add {
+      width: 70px; height: 70px; border: 2px dashed var(--border-light);
+      border-radius: var(--radius-sm); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 2px; cursor: pointer;
+      color: var(--text-muted); font-size: 10px; transition: all 0.15s;
+    }
+    .omni-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+    .omni-add svg { width: 18px; height: 18px; }
+    .omni-url-row { display: flex; gap: 6px; }
+    .omni-url-row input { flex: 1; padding: 6px 10px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; outline: none; }
+    .omni-url-row input:focus { border-color: var(--accent); }
+    .omni-url-row button { padding: 6px 12px; font-size: 12px; }
+    .omni-hint { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
     @media (max-width: 768px) {
       .settings-bar { flex-wrap: wrap; gap: 10px; }
       .header { padding: 12px 16px; }
@@ -268,6 +316,10 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             Image to Video
           </button>
+          <button class="tab" data-tab="omni">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4"/><path d="M12 19v4"/><path d="M4.22 4.22l2.83 2.83"/><path d="M16.95 16.95l2.83 2.83"/><path d="M1 12h4"/><path d="M19 12h4"/><path d="M4.22 19.78l2.83-2.83"/><path d="M16.95 7.05l2.83-2.83"/></svg>
+            Omni Reference
+          </button>
           <button class="tab" data-tab="extend">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
             Extend Video
@@ -292,6 +344,65 @@
             For file uploads: images are uploaded to litterbox.catbox.moe (1h temporary hosting).
             Or paste a direct public URL.
           </p>
+        </div>
+
+        <!-- Omni Reference Section -->
+        <div class="omni-section" id="omniSection" style="display:none;">
+          <!-- Images (up to 9) -->
+          <div class="omni-group">
+            <div class="omni-group-header">
+              <label class="ref-label">Images</label>
+              <span class="omni-count" id="omniImgCount">(0/9)</span>
+            </div>
+            <div class="omni-items" id="omniImages">
+              <div class="omni-add" id="omniAddImg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Image</span>
+              </div>
+            </div>
+            <input type="file" id="omniImgInput" accept="image/*" style="display:none;" />
+            <div class="omni-url-row">
+              <input type="text" id="omniImgUrl" placeholder="Paste image URL..." />
+              <button class="btn-small" id="omniAddImgUrl">Add</button>
+            </div>
+          </div>
+          <!-- Videos (up to 3) -->
+          <div class="omni-group">
+            <div class="omni-group-header">
+              <label class="ref-label">Videos</label>
+              <span class="omni-count" id="omniVidCount">(0/3)</span>
+            </div>
+            <div class="omni-items" id="omniVideos">
+              <div class="omni-add" id="omniAddVid">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Video</span>
+              </div>
+            </div>
+            <input type="file" id="omniVidInput" accept="video/*" style="display:none;" />
+            <div class="omni-url-row">
+              <input type="text" id="omniVidUrl" placeholder="Paste video URL..." />
+              <button class="btn-small" id="omniAddVidUrl">Add</button>
+            </div>
+          </div>
+          <!-- Audio (up to 3) -->
+          <div class="omni-group">
+            <div class="omni-group-header">
+              <label class="ref-label">Audio</label>
+              <span class="omni-count" id="omniAudCount">(0/3)</span>
+            </div>
+            <div class="omni-items" id="omniAudios">
+              <div class="omni-add" id="omniAddAud">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <span>Audio</span>
+              </div>
+            </div>
+            <input type="file" id="omniAudInput" accept="audio/*" style="display:none;" />
+            <div class="omni-url-row">
+              <input type="text" id="omniAudUrl" placeholder="Paste audio URL..." />
+              <button class="btn-small" id="omniAddAudUrl">Add</button>
+            </div>
+          </div>
+          <p class="omni-hint">Files are uploaded to catbox.moe (1h hosting). Use @image1, @video1, @audio1 in your prompt to reference assets.</p>
         </div>
 
         <!-- Extend Section -->
@@ -367,6 +478,9 @@
     // State
     let currentMode = "t2v";
     let referenceImages = [];
+    let omniImages = [];
+    let omniVideos = [];
+    let omniAudios = [];
     let history = JSON.parse(localStorage.getItem("seedance_history_standalone") || "[]");
     let polling = null;
 
@@ -439,9 +553,9 @@
       return { status: res.status, data };
     }
 
-    // Upload image to litterbox.catbox.moe for public URL
+    // Upload file to litterbox.catbox.moe for public URL
     async function uploadToCatbox(file) {
-      log("Uploading image to litterbox.catbox.moe...", "info");
+      log(`Uploading ${file.name} to litterbox.catbox.moe...`, "info");
       const formData = new FormData();
       formData.append("reqtype", "fileupload");
       formData.append("time", "1h");
@@ -464,6 +578,7 @@
     const tabs = document.querySelectorAll(".tab");
     const refSection = document.getElementById("refSection");
     const extendSection = document.getElementById("extendSection");
+    const omniSection = document.getElementById("omniSection");
     const refImagesContainer = document.getElementById("refImages");
     const refAddBtn = document.getElementById("refAddBtn");
     const imageInput = document.getElementById("imageInput");
@@ -492,9 +607,11 @@
         tab.classList.add("active");
         currentMode = tab.dataset.tab;
         refSection.style.display = currentMode === "i2v" ? "block" : "none";
+        omniSection.style.display = currentMode === "omni" ? "block" : "none";
         extendSection.style.display = currentMode === "extend" ? "block" : "none";
         if (currentMode === "t2v") promptInput.placeholder = "Describe the video you want to generate...";
         else if (currentMode === "i2v") promptInput.placeholder = "Describe how the image should be animated...";
+        else if (currentMode === "omni") promptInput.placeholder = "Describe the video. Use @image1, @video1, @audio1 to reference assets...";
         else promptInput.placeholder = "Optional: describe how to continue the video...";
       });
     });
@@ -540,11 +657,86 @@
       if (btn) { referenceImages.splice(parseInt(btn.dataset.idx), 1); renderRefImages(); }
     });
 
+    // Omni Reference management
+    function setupOmniGroup(type, arr, maxCount, containerId, addBtnId, fileInputId, urlInputId, urlBtnId, countId, isImage) {
+      const container = document.getElementById(containerId);
+      const addBtn = document.getElementById(addBtnId);
+      const fileInput = document.getElementById(fileInputId);
+      const urlInput = document.getElementById(urlInputId);
+      const urlBtn = document.getElementById(urlBtnId);
+      const countEl = document.getElementById(countId);
+
+      function render() {
+        container.querySelectorAll(".omni-item").forEach(el => el.remove());
+        arr.forEach((url, idx) => {
+          const item = document.createElement("div");
+          item.className = "omni-item";
+          if (isImage) {
+            item.classList.add("omni-item-img");
+            item.innerHTML = `<img src="${escapeHtml(url)}" alt="${type} ${idx+1}" /><button class="omni-remove" data-type="${type}" data-idx="${idx}">&times;</button>`;
+          } else {
+            item.classList.add("omni-item-file");
+            const ext = url.split(".").pop().split("?")[0].substring(0, 4);
+            const icon = type === "video" ? "&#9654;" : "&#9835;";
+            item.innerHTML = `<span class="file-icon">${icon}</span><span class="file-name">${ext}</span><button class="omni-remove" data-type="${type}" data-idx="${idx}">&times;</button>`;
+          }
+          container.insertBefore(item, addBtn);
+        });
+        countEl.textContent = `(${arr.length}/${maxCount})`;
+        addBtn.style.display = arr.length >= maxCount ? "none" : "";
+      }
+
+      addBtn.addEventListener("click", () => {
+        if (arr.length >= maxCount) { showToast(`Max ${maxCount} ${type}s`, true); return; }
+        fileInput.click();
+      });
+
+      fileInput.addEventListener("change", async e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (arr.length >= maxCount) { showToast(`Max ${maxCount} ${type}s`, true); fileInput.value = ""; return; }
+        try {
+          const publicUrl = await uploadToCatbox(file);
+          arr.push(publicUrl);
+          render();
+        } catch (err) {
+          showToast("Upload failed: " + err.message, true);
+          log("Upload failed: " + err.message, "error");
+        }
+        fileInput.value = "";
+      });
+
+      urlBtn.addEventListener("click", () => {
+        const url = urlInput.value.trim();
+        if (!url) return;
+        if (!url.startsWith("http")) { showToast("Enter a valid URL", true); return; }
+        if (arr.length >= maxCount) { showToast(`Max ${maxCount} ${type}s`, true); return; }
+        arr.push(url);
+        render();
+        urlInput.value = "";
+      });
+
+      container.addEventListener("click", e => {
+        const btn = e.target.closest(".omni-remove");
+        if (btn && btn.dataset.type === type) {
+          arr.splice(parseInt(btn.dataset.idx), 1);
+          render();
+        }
+      });
+
+      render();
+    }
+
+    setupOmniGroup("image", omniImages, 9, "omniImages", "omniAddImg", "omniImgInput", "omniImgUrl", "omniAddImgUrl", "omniImgCount", true);
+    setupOmniGroup("video", omniVideos, 3, "omniVideos", "omniAddVid", "omniVidInput", "omniVidUrl", "omniAddVidUrl", "omniVidCount", false);
+    setupOmniGroup("audio", omniAudios, 3, "omniAudios", "omniAddAud", "omniAudInput", "omniAudUrl", "omniAddAudUrl", "omniAudCount", false);
+
     // Generate
     generateBtn.addEventListener("click", async () => {
       if (!getApiKey()) { showToast("Please enter and save your API key first", true); return; }
       if (currentMode === "t2v" && !promptInput.value.trim()) { showToast("Please enter a prompt", true); return; }
       if (currentMode === "i2v" && referenceImages.length === 0) { showToast("Please add at least one reference image", true); return; }
+      if (currentMode === "omni" && omniImages.length === 0 && omniVideos.length === 0 && omniAudios.length === 0) { showToast("Please add at least one reference (image, video, or audio)", true); return; }
       if (currentMode === "extend" && !extendId.value.trim()) { showToast("Please enter a request ID", true); return; }
 
       generateBtn.disabled = true;
@@ -559,6 +751,17 @@
             duration: parseInt(duration.value),
             quality: quality.value,
           });
+        } else if (currentMode === "omni") {
+          const payload = {
+            prompt: promptInput.value.trim(),
+            aspect_ratio: aspectRatio.value,
+            duration: parseInt(duration.value),
+            quality: quality.value,
+          };
+          if (omniImages.length > 0) payload.images_list = omniImages;
+          if (omniVideos.length > 0) payload.video_files = omniVideos;
+          if (omniAudios.length > 0) payload.audio_files = omniAudios;
+          result = await apiRequest("POST", "/seedance-v2.0-omni-reference", payload);
         } else {
           const endpoint = currentMode === "i2v" ? "/seedance-v2.0-i2v" : "/seedance-v2.0-t2v";
           const payload = {
