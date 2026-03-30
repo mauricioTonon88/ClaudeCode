@@ -360,7 +360,9 @@
 
   <script>
   (() => {
-    const API_BASE = "https://api.muapi.ai/api/v1";
+    // Use local proxy to avoid CORS. Falls back to direct API if opened as a raw file.
+    const isServed = window.location.protocol.startsWith("http");
+    const API_BASE = isServed ? "/api/muapi" : "https://api.muapi.ai/api/v1";
 
     // State
     let currentMode = "t2v";
