@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Generator</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f13;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        /* Form */
+        .form-card {
+            background: #1a1a24;
+            border: 1px solid #2a2a3a;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            background: #12121a;
+            border: 1px solid #2a2a3a;
+            border-radius: 10px;
+            padding: 14px;
+            color: #e0e0e0;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus { border-color: #6c5ce7; }
+
+        .upload-area {
+            border: 2px dashed #2a2a3a;
+            border-radius: 10px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            margin-top: 4px;
+            position: relative;
+        }
+
+        .upload-area:hover { border-color: #6c5ce7; background: #1e1e2e; }
+        .upload-area.has-file { border-color: #00b894; background: #1a2e2a; }
+
+        .upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon { font-size: 32px; margin-bottom: 8px; }
+        .upload-text { color: #888; font-size: 14px; }
+        .upload-filename { color: #00b894; font-size: 14px; margin-top: 6px; }
+
+        .preview-img {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .form-row {
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #6c5ce7, #a855f7);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Results */
+        .results-section { display: none; }
+        .results-section.visible { display: block; }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .results-header h2 {
+            font-size: 20px;
+            color: #fff;
+        }
+
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-badge.running { background: #2d2a1a; color: #fdcb6e; }
+        .status-badge.done { background: #1a2e2a; color: #00b894; }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .video-grid { grid-template-columns: 1fr; }
+        }
+
+        .video-card {
+            background: #1a1a24;
+            border: 1px solid #2a2a3a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .video-card .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid #2a2a3a;
+        }
+
+        .video-card .card-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .video-card .card-status {
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+
+        .card-status.queued { background: #2a2a3a; color: #888; }
+        .card-status.processing { background: #2d2a1a; color: #fdcb6e; }
+        .card-status.done { background: #1a2e2a; color: #00b894; }
+        .card-status.failed { background: #2e1a1a; color: #e74c3c; }
+
+        .video-wrapper {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #12121a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .video-wrapper .placeholder {
+            color: #444;
+            font-size: 13px;
+        }
+
+        .spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #2a2a3a;
+            border-top-color: #6c5ce7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .download-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: #12121a;
+            border: none;
+            border-top: 1px solid #2a2a3a;
+            color: #6c5ce7;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .download-btn:hover { background: #1e1e2e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Video Generator</h1>
+        <p class="subtitle">Image-to-Video &bull; 720p &bull; 5s &bull; 4 variations</p>
+
+        <!-- Input Form -->
+        <div class="form-card">
+            <form id="genForm">
+                <div class="form-row">
+                    <label for="prompt">Prompt</label>
+                    <textarea id="prompt" name="prompt" placeholder="Describe the motion or action you want in the video..."></textarea>
+                </div>
+                <div class="form-row">
+                    <label>Source Image</label>
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="imageInput" name="image" accept="image/*">
+                        <div id="uploadContent">
+                            <div class="upload-icon">&#8683;</div>
+                            <div class="upload-text">Click or drag an image here</div>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn" id="submitBtn">Generate 4 Videos</button>
+            </form>
+        </div>
+
+        <!-- Results -->
+        <div class="results-section" id="results">
+            <div class="results-header">
+                <h2>Results</h2>
+                <span class="status-badge running" id="jobBadge">Generating...</span>
+            </div>
+            <div class="video-grid" id="videoGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('genForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const imageInput = document.getElementById('imageInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const uploadContent = document.getElementById('uploadContent');
+        const results = document.getElementById('results');
+        const videoGrid = document.getElementById('videoGrid');
+        const jobBadge = document.getElementById('jobBadge');
+
+        // Image preview
+        imageInput.addEventListener('change', () => {
+            const file = imageInput.files[0];
+            if (!file) return;
+            uploadArea.classList.add('has-file');
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadContent.innerHTML = `
+                    <img src="${e.target.result}" class="preview-img">
+                    <div class="upload-filename">${file.name}</div>
+                `;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Submit
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = document.getElementById('prompt').value.trim();
+            const file = imageInput.files[0];
+
+            if (!prompt) return alert('Please enter a prompt.');
+            if (!file) return alert('Please upload an image.');
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            const formData = new FormData();
+            formData.append('prompt', prompt);
+            formData.append('image', file);
+
+            try {
+                const res = await fetch('/generate', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.error) {
+                    alert(data.error);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Generate 4 Videos';
+                    return;
+                }
+                showResults(data.job_id);
+            } catch (err) {
+                alert('Failed to submit: ' + err.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Generate 4 Videos';
+            }
+        });
+
+        function showResults(jobId) {
+            results.classList.add('visible');
+            jobBadge.textContent = 'Generating...';
+            jobBadge.className = 'status-badge running';
+
+            // Build 4 cards
+            videoGrid.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                videoGrid.innerHTML += `
+                    <div class="video-card" id="card-${i}">
+                        <div class="card-header">
+                            <span class="card-title">Video ${i + 1}</span>
+                            <span class="card-status queued" id="status-${i}">Queued</span>
+                        </div>
+                        <div class="video-wrapper" id="video-${i}">
+                            <div class="placeholder"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            results.scrollIntoView({ behavior: 'smooth' });
+            pollJob(jobId);
+        }
+
+        async function pollJob(jobId) {
+            const poll = async () => {
+                try {
+                    const res = await fetch(`/status/${jobId}`);
+                    const job = await res.json();
+
+                    job.tasks.forEach((task, i) => {
+                        const statusEl = document.getElementById(`status-${i}`);
+                        const videoEl = document.getElementById(`video-${i}`);
+                        const card = document.getElementById(`card-${i}`);
+
+                        statusEl.textContent = task.status.charAt(0).toUpperCase() + task.status.slice(1);
+                        statusEl.className = `card-status ${task.status}`;
+
+                        if (task.status === 'done' && task.filename && !videoEl.querySelector('video')) {
+                            const url = `/videos/${task.filename}`;
+                            videoEl.innerHTML = `<video controls preload="metadata"><source src="${url}" type="video/mp4"></video>`;
+                            // Add download button
+                            if (!card.querySelector('.download-btn')) {
+                                const dl = document.createElement('a');
+                                dl.href = url;
+                                dl.download = task.filename;
+                                dl.className = 'download-btn';
+                                dl.textContent = 'Download';
+                                card.appendChild(dl);
+                            }
+                        } else if (task.status === 'failed' && !videoEl.querySelector('.fail-msg')) {
+                            videoEl.innerHTML = `<div class="placeholder fail-msg">Generation failed</div>`;
+                        }
+                    });
+
+                    if (job.status === 'done') {
+                        jobBadge.textContent = 'Complete';
+                        jobBadge.className = 'status-badge done';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Generate 4 Videos';
+                        return;
+                    }
+
+                    setTimeout(poll, 3000);
+                } catch {
+                    setTimeout(poll, 5000);
+                }
+            };
+            poll();
+        }
+    </script>
+</body>
+</html>
