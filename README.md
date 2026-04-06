@@ -1,55 +1,40 @@
-# BytePlus Video Generation Wrapper
+# BytePlus Image-to-Video Wrapper
 
-Simple wrapper around the BytePlus ModelArk video generation API (Seedance model).
+Generates **4 videos** from an image + text prompt using the BytePlus Seedance model.
+
+**Fixed settings:** 720p, 5 seconds, no sound, no draft mode, online generation.
 
 ## Setup
 
 ```bash
-pip install -r requirements.txt
-export ARK_API_KEY="your-api-key-here"
+pip install requests
 ```
 
-## Command Line Usage
+## Usage
 
-**Text-to-video:**
 ```bash
-python byteplus_video.py "A cat walking on the moon" -o cat_moon.mp4
+# From an image URL
+python byteplus_video.py "A drone flies through the scene" https://example.com/photo.png
+
+# From a local image file
+python byteplus_video.py "Gentle camera zoom" ./my_photo.png
+
+# Custom output prefix (produces my_video_1.mp4 ... my_video_4.mp4)
+python byteplus_video.py "The scene comes alive" ./photo.png -o my_video
 ```
 
-**Image-to-video:**
-```bash
-python byteplus_video.py "Camera slowly zooms in" --image "https://example.com/photo.png" -o result.mp4
-```
+## Output
 
-**Options:**
-```
---image, -i       Image URL for image-to-video mode
---duration, -d    Video duration in seconds (default: 5)
---camera-fixed    Fix camera position
---output, -o      Output file path (default: output.mp4)
---no-wait         Submit task without waiting for completion
---status TASK_ID  Check status of an existing task
---timeout         Max wait time in seconds (default: 600)
-```
+Produces 4 files: `output_1.mp4`, `output_2.mp4`, `output_3.mp4`, `output_4.mp4`
 
 ## Python Usage
 
 ```python
-from byteplus_video import BytePlusVideo
+from byteplus_video import generate
 
-client = BytePlusVideo(api_key="your-key")
-
-# Text-to-video
-task = client.create_task("A drone flying through a canyon --duration 5")
-result = client.wait_for_result(task["id"])
-client.download_video(result, "output.mp4")
-
-# Image-to-video
-task = client.create_task(
-    "The scene comes alive with gentle motion",
-    image_url="https://example.com/photo.png",
-    duration=5
+videos = generate(
+    prompt="Camera slowly pans across the landscape",
+    image_source="https://example.com/photo.png",
+    output_prefix="my_video"
 )
-result = client.wait_for_result(task["id"])
-client.download_video(result, "output.mp4")
 ```
